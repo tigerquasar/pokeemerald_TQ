@@ -10467,7 +10467,7 @@ bool32 DoesMoveMissTarget(struct BattleCalcValues *cv)
                         cv->holdEffects[cv->battlerAtk],
                         cv->holdEffects[cv->battlerDef]
                     );
-    return !RandomPercentage(RNG_ACCURACY, accuracy);
+    return FALSE/*!RandomPercentage(RNG_ACCURACY, accuracy)*/;
 }
 
 bool32 IsSemiInvulnerable(enum BattlerId battler, enum SemiInvulnerableExclusion excludeCommander)
