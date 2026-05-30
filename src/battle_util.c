@@ -7582,6 +7582,11 @@ static inline s32 DoMoveDamageCalcVars(struct DamageContext *ctx)
     s32 dmg;
     u32 userFinalAttack;
     u32 targetFinalDefense;
+    u32 moveAcc;
+    s8 buff;
+    s8 accStage = gBattleMons[ctx->battlerAtk].statStages[STAT_ACC];
+    s8 evasionStage = gBattleMons[ctx->battlerDef].statStages[STAT_EVASION];
+    u32 accStageModifier;
 
     if (ctx->fixedBasePower)
         gBattleMovePower = ctx->fixedBasePower;
@@ -7597,11 +7602,26 @@ static inline s32 DoMoveDamageCalcVars(struct DamageContext *ctx)
     DAMAGE_APPLY_MODIFIER(GetWeatherDamageModifier(ctx));
     DAMAGE_APPLY_MODIFIER(GetCriticalModifier(ctx->isCrit));
     DAMAGE_APPLY_MODIFIER(GetGlaiveRushModifier(ctx->battlerDef));
+    buff = accStage + DEFAULT_STAT_STAGE - evasionStage + 2*gBattleMons[ctx->battlerDef].neweffect.beamEffect ;
+        if (buff > DEFAULT_STAT_STAGE)
+            buff = DEFAULT_STAT_STAGE;
+        if (buff < MIN_STAT_STAGE)
+            buff = MIN_STAT_STAGE;
+    if (GetMoveAccuracy(ctx->move) != 0)
+    {
+        dmg *=  gAccuracyStageRatios[buff].dividend;
+        dmg /=  gAccuracyStageRatios[buff].divisor;
+    }
 
     if (ctx->randomFactor)
     {
-        dmg *= DMG_ROLL_PERCENT_HI - RandomUniform(RNG_DAMAGE_MODIFIER, 0, DMG_ROLL_PERCENT_HI - DMG_ROLL_PERCENT_LO);
-        dmg /= 100;
+        // New roll system, only for previously innacurate move
+        moveAcc = GetTotalAccuracy(ctx->battlerAtk, ctx->battlerDef, ctx->move, GetBattlerAbility(ctx->battlerAtk), GetBattlerAbility(ctx->battlerDef), GetBattlerHoldEffect(ctx->battlerAtk), GetBattlerHoldEffect(ctx->battlerDef));
+        accStageModifier = gAccuracyStageRatios[buff].dividend * 100;
+        accStageModifier = accStageModifier / gAccuracyStageRatios[buff].divisor;
+        dmg *= RandomUniform(RNG_DAMAGE_MODIFIER, 3*moveAcc - 200 + accStageModifier - (moveAcc*accStageModifier/100), DMG_ROLL_PERCENT_HI); 
+        dmg *= 925; //These two next lines are here to replace the old roll system with a mid roll for balance purpose
+        dmg /= (1000*100);
     }
     else // Apply rest of modifiers in the ai function
     {
