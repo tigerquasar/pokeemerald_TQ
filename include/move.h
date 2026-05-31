@@ -129,6 +129,13 @@ struct MoveInfo
     bool32 windMove:1;
     bool32 slicingMove:1;
     bool32 healingMove:1;
+    bool32 kickingMove:1;
+    bool32 slamingMove:1;
+    bool32 whippingMove:1;
+    bool32 beamMove:1;
+    bool32 piercingMove:1;
+    bool32 lightMove:1;
+    bool32 clawMove:1;
     bool32 minimizeDoubleDamage:1;
     // end of word
     bool32 ignoresTargetAbility:1;
@@ -148,7 +155,7 @@ struct MoveInfo
     bool32 alwaysHitsOnSameType:1; // Always hits if user is of same type as move
     bool32 noAffectOnSameTypeTarget:1; // Fails if target is of same type as move
     bool32 accIncreaseByTenOnSameType:1; // Accuracy is increased by 10% if user is of same type as move
-    bool32 padding1:15;
+    bool32 padding1:8;
     // end of word
 
     // Ban flags
@@ -410,6 +417,41 @@ static inline bool32 IsSlicingMove(enum Move moveId)
 static inline bool32 IsHealingMove(enum Move moveId)
 {
     return gMovesInfo[SanitizeMoveId(moveId)].healingMove;
+}
+
+static inline bool32 IsKickingMove(u32 moveId)
+{
+    return gMovesInfo[SanitizeMoveId(moveId)].kickingMove;
+}
+
+static inline bool32 IsSlamingMove(u32 moveId)
+{
+    return gMovesInfo[SanitizeMoveId(moveId)].slamingMove;
+}
+
+static inline bool32 IsWhippingMove(u32 moveId)
+{
+    return gMovesInfo[SanitizeMoveId(moveId)].whippingMove;
+}
+
+static inline bool32 IsBeamMove(u32 moveId)
+{
+    return gMovesInfo[SanitizeMoveId(moveId)].beamMove;
+}
+
+static inline bool32 IsPiercingMove(u32 moveId)
+{
+    return gMovesInfo[SanitizeMoveId(moveId)].piercingMove;
+}
+
+static inline bool32 IsLightMove(u32 moveId)
+{
+    return gMovesInfo[SanitizeMoveId(moveId)].lightMove;
+}
+
+static inline bool32 IsClawMove(u32 moveId)
+{
+    return gMovesInfo[SanitizeMoveId(moveId)].lightMove;
 }
 
 static inline bool32 MoveIncreasesPowerToMinimizedTargets(enum Move moveId)
