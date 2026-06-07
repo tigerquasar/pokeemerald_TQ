@@ -2470,9 +2470,9 @@ void SetMoveEffect(enum BattlerId battlerAtk, enum BattlerId effectBattler, enum
     {
         static const u8 sTriAttackEffects[] =
         {
-            MOVE_EFFECT_BURN,
-            MOVE_EFFECT_FREEZE_OR_FROSTBITE,
-            MOVE_EFFECT_PARALYSIS
+            MOVE_EFFECT_BURN_COUNTER,
+            MOVE_EFFECT_FREEZE_OR_FROSTBITE_COUNTER,
+            MOVE_EFFECT_PARALYSIS_COUNTER
         };
         u32 chosenMoveEffect = RandomUniform(RNG_TRI_ATTACK, 0, ARRAY_COUNT(sTriAttackEffects) - 1);
         if (sTriAttackEffects[chosenMoveEffect] == MOVE_EFFECT_BURN)
@@ -2721,8 +2721,12 @@ void SetMoveEffect(enum BattlerId battlerAtk, enum BattlerId effectBattler, enum
     case MOVE_EFFECT_DIRE_CLAW:
         if (!gBattleMons[effectBattler].status1)
         {
-            static const u8 sDireClawEffects[] = { MOVE_EFFECT_POISON, MOVE_EFFECT_PARALYSIS, MOVE_EFFECT_SLEEP };
-            SetMoveEffect(battlerAtk, effectBattler, RandomElement(RNG_DIRE_CLAW, sDireClawEffects), battleScript, effectFlags);
+            //static const u8 sDireClawEffects[] = { MOVE_EFFECT_POISON, MOVE_EFFECT_PARALYSIS, MOVE_EFFECT_SLEEP };
+            //SetMoveEffect(battler, effectBattler, RandomElement(RNG_DIRE_CLAW, sDireClawEffects), battleScript, effectFlags);
+            const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+            static const u8 sDireClawEffects[] = { MOVE_EFFECT_POISON_COUNTER, MOVE_EFFECT_PARALYSIS_COUNTER, MOVE_EFFECT_SLEEP_COUNTER };
+            u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+            SetMoveEffect(battler, effectBattler, RandomElement(fractionActivate, sDireClawEffects), battleScript, effectFlags);
         }
         break;
     case MOVE_EFFECT_STEALTH_ROCK:
@@ -3417,6 +3421,442 @@ void SetMoveEffect(enum BattlerId battlerAtk, enum BattlerId effectBattler, enum
         break;
     default:
         break;
+    }
+    // Custom effect
+    // New additionnal effect system : now moves with additionnal effect will charge a loading bar / counter, with previous chance activation now the percent of bar loaded
+    //For non volatile status
+    case MOVE_EFFECT_SLEEP_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBeSlept(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerTarget), BLOCKED_BY_SLEEP_CLAUSE))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.sleepCounter + fractionActivate >= 60)
+            {
+                SetNonVolatileStatus(gEffectBattler, MOVE_EFFECT_SLEEP, battleScript, TRIGGER_ON_MOVE);
+                gBattleMons[gEffectBattler].neweffects.sleepCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.sleepCounter += fractionActivate;
+            }   
+        }
+        break;
+    }
+
+    case MOVE_EFFECT_POISON_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBePoisoned(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerAttacker),  GetBattlerAbility(gBattlerTarget)))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.poisonCounter + fractionActivate >= 60)
+            {
+                SetNonVolatileStatus(gEffectBattler, MOVE_EFFECT_POISON, battleScript, TRIGGER_ON_MOVE);
+                gBattleMons[gEffectBattler].neweffects.poisonCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.poisonCounter += fractionActivate;
+            }
+            
+        }               
+        break;
+    }
+
+    case MOVE_EFFECT_BURN_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBeBurned(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerTarget)))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.burnCounter + fractionActivate >= 60)
+            {
+                SetNonVolatileStatus(gEffectBattler, MOVE_EFFECT_BURN, battleScript, TRIGGER_ON_MOVE);
+                gBattleMons[gEffectBattler].neweffects.burnCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.burnCounter += fractionActivate;
+            }            
+        }       
+        break;
+    }
+
+    case MOVE_EFFECT_PARALYSIS_COUNTER:
+    {       
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBeParalyzed(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerTarget)))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.paralysisCounter + fractionActivate >= 60)
+            {
+                SetNonVolatileStatus(gEffectBattler, MOVE_EFFECT_PARALYSIS, battleScript, TRIGGER_ON_MOVE);
+                gBattleMons[gEffectBattler].neweffects.paralysisCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.paralysisCounter += fractionActivate;
+            }
+            
+        }
+        
+        
+        break;
+    }
+
+    case MOVE_EFFECT_TOXIC_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBeBurned(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerTarget)))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.toxicCounter + fractionActivate >= 60)
+            {
+                SetNonVolatileStatus(gEffectBattler, MOVE_EFFECT_TOXIC, battleScript, TRIGGER_ON_MOVE);
+                gBattleMons[gEffectBattler].neweffects.toxicCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.toxicCounter += fractionActivate;
+            }            
+        }                
+        break;
+    }
+
+    case MOVE_EFFECT_FROSTBITE_COUNTER:
+    {       
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBeBurned(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerTarget)))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.frostbiteCounter + fractionActivate >= 60)
+            {
+                SetNonVolatileStatus(gEffectBattler, MOVE_EFFECT_FROSTBITE, battleScript, TRIGGER_ON_MOVE);
+                gBattleMons[gEffectBattler].neweffects.frostbiteCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.frostbiteCounter += fractionActivate;
+            }            
+        }               
+        break;
+    }
+
+    //For volatile status
+    case MOVE_EFFECT_CONFUSION_COUNTER:
+    {       
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBeConfused(gBattlerTarget))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.confusionCounter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_CONFUSION, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.confusionCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.confusionCounter += fractionActivate;
+            }            
+        }               
+        break;
+    }
+
+    case MOVE_EFFECT_DIZZY_COUNTER:
+    {       
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (CanBeDizzy(gBattlerTarget))
+        {
+            if(gBattleMons[gEffectBattler].neweffects.dizzyCounter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_DIZZY, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.dizzyCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.dizzyCounter += fractionActivate;
+            }            
+        }               
+        break;
+    }
+
+    case MOVE_EFFECT_FLINCH_COUNTER:
+    {       
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (battlerAbility != ABILITY_INNER_FOCUS /*&& !(IsBitingMove(gCurrentMove) && battlerAbility == THICK_SKIN*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.flinchCounter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_FLINCH, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.flinchCounter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.flinchCounter += fractionActivate;
+            }            
+        }               
+        break;
+    }
+
+    //For stat change
+    case MOVE_EFFECT_ATK_MINUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (TRUE /*maybe verify clear body or stat -6 already*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.atkMinus1Counter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_ATK_MINUS_1, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.atkMinus1Counter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.atkMinus1Counter += fractionActivate;
+            }
+            
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_DEF_MINUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (TRUE /*maybe verify clear body or stat -6 already*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.defMinus1Counter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_DEF_MINUS_1, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.defMinus1Counter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.defMinus1Counter += fractionActivate;
+            }
+            
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_SP_ATK_MINUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (TRUE /*maybe verify clear body or stat -6 already*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.speatkMinus1Counter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_SP_ATK_MINUS_1, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.speatkMinus1Counter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.speatkMinus1Counter += fractionActivate;
+            }
+            
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_SP_DEF_MINUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (TRUE /*maybe verify clear body or stat -6 already*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.spedefMinus1Counter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_SP_DEF_MINUS_1, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.spedefMinus1Counter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.spedefMinus1Counter += fractionActivate;
+            }
+            
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_SPD_MINUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (TRUE /*maybe verify clear body or stat -6 already*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.spdMinus1Counter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_SPD_MINUS_1, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.spdMinus1Counter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.spdMinus1Counter += fractionActivate;
+            }
+            
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_SP_DEF_MINUS_2_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (TRUE /*maybe verify clear body or stat -6 already*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.spedefMinus2Counter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_SP_DEF_MINUS_2, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.spedefMinus2Counter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.spedefMinus2Counter += fractionActivate;
+            }
+            
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_ATK_PLUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if(gBattleMons[gEffectBattler].neweffects.atkPlus1Counter + fractionActivate >= 60)
+        {
+            SetMoveEffect(battler, effectBattler, MOVE_EFFECT_ATK_PLUS_1, battleScript, effectFlags);
+            gBattleMons[gEffectBattler].neweffects.atkPlus1Counter = 0;
+        }
+        else
+        {
+            gBattleMons[gEffectBattler].neweffects.atkPlus1Counter += fractionActivate;
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_DEF_PLUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if(gBattleMons[gEffectBattler].neweffects.defPlus1Counter + fractionActivate >= 60)
+        {
+            SetMoveEffect(battler, effectBattler, MOVE_EFFECT_DEF_PLUS_1, battleScript, effectFlags);
+            gBattleMons[gEffectBattler].neweffects.defPlus1Counter = 0;
+        }
+        else
+        {
+            gBattleMons[gEffectBattler].neweffects.defPlus1Counter += fractionActivate;
+        }           
+        break;
+    }
+
+    case MOVE_EFFECT_SP_ATK_PLUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if(gBattleMons[gEffectBattler].neweffects.speatkPlus1Counter + fractionActivate >= 60)
+        {
+            SetMoveEffect(battler, effectBattler, MOVE_EFFECT_SP_ATK_PLUS_1, battleScript, effectFlags);
+            gBattleMons[gEffectBattler].neweffects.speatkPlus1Counter = 0;
+        }
+        else
+        {
+            gBattleMons[gEffectBattler].neweffects.speatkPlus1Counter += fractionActivate;
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_SP_DEF_PLUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if(gBattleMons[gEffectBattler].neweffects.spedefMinus1Counter + fractionActivate >= 60)
+        {
+            SetMoveEffect(battler, effectBattler, MOVE_EFFECT_SP_DEF_PLUS_1, battleScript, effectFlags);
+            gBattleMons[gEffectBattler].neweffects.spedefMinus1Counter = 0;
+        }
+        else
+        {
+            gBattleMons[gEffectBattler].neweffects.spedefMinus1Counter += fractionActivate;
+        }        
+        break;
+    }
+
+    case MOVE_EFFECT_SPD_PLUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+
+        if(gBattleMons[gEffectBattler].neweffects.spdPlus1Counter + fractionActivate >= 60)
+        {
+            SetMoveEffect(battler, effectBattler, MOVE_EFFECT_SPD_PLUS_1, battleScript, effectFlags);
+            gBattleMons[gEffectBattler].neweffects.spdPlus1Counter = 0;
+        }
+        else
+        {
+            gBattleMons[gEffectBattler].neweffects.spdPlus1Counter += fractionActivate;
+        }       
+        break;
+    }
+
+    case MOVE_EFFECT_DEF_PLUS_2_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if(gBattleMons[gEffectBattler].neweffects.defPlus2Counter + fractionActivate >= 60)
+        {
+            SetMoveEffect(battler, effectBattler, MOVE_EFFECT_DEF_PLUS_2, battleScript, effectFlags);
+            gBattleMons[gEffectBattler].neweffects.defPlus2Counter = 0;
+        }
+        else
+        {
+            gBattleMons[gEffectBattler].neweffects.defPlus2Counter += fractionActivate;
+        }           
+        break;
+    }
+
+    case MOVE_EFFECT_OMNIBOOST_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if(gBattleMons[gEffectBattler].neweffects.omniboostCounter + fractionActivate >= 60)
+        {
+            SetMoveEffect(battler, effectBattler, MOVE_EFFECT_ALL_STATS_UP, battleScript, effectFlags);
+            gBattleMons[gEffectBattler].neweffects.omniboostCounter = 0;
+        }
+        else
+        {
+            gBattleMons[gEffectBattler].neweffects.omniboostCounter += fractionActivate;
+        }           
+        break;
+    }
+
+    case MOVE_EFFECT_ACC_MINUS_1_COUNTER:
+    {        
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
+        u32 fractionActivate = CalcSecondaryEffectChance(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), additionalEffect);
+        if (TRUE /*maybe verify clear body or stat -6 already*/)
+        {
+            if(gBattleMons[gEffectBattler].neweffects.accMinus1Counter + fractionActivate >= 60)
+            {
+                SetMoveEffect(battler, effectBattler, MOVE_EFFECT_ACC_MINUS_1, battleScript, effectFlags);
+                gBattleMons[gEffectBattler].neweffects.accMinus1Counter = 0;
+            }
+            else
+            {
+                gBattleMons[gEffectBattler].neweffects.accMinus1Counter += fractionActivate;
+            }
+            
+        }        
+        break;
+    }
+
+        default:
+            break;
     }
 
     gBattleScripting.moveEffect = MOVE_EFFECT_NONE;

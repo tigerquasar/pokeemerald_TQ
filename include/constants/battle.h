@@ -518,6 +518,7 @@ enum __attribute__((packed)) MoveEffect
     MOVE_EFFECT_FROSTBITE = 7,
     MOVE_EFFECT_CONFUSION,
     MOVE_EFFECT_FLINCH,
+    MOVE_EFFECT_DIZZY,
     MOVE_EFFECT_TRI_ATTACK,
     MOVE_EFFECT_UPROAR,
     MOVE_EFFECT_PAYDAY,
@@ -616,12 +617,42 @@ enum __attribute__((packed)) MoveEffect
     MOVE_EFFECT_ITEM_MESSAGE, // Handles the flung item and attacked by its item messages (Fling, Poltergeist)
 
     // Only for secret power usage but better to remove/refactor the abstraction
-    // renamed so that users don't think those are usable constatns
+    // renamed so that users don't think those are usable constants
     SECRET_POWER_ATK_MINUS_1,
     SECRET_POWER_DEF_MINUS_1,
     SECRET_POWER_SPD_MINUS_1,
     SECRET_POWER_SP_ATK_MINUS_1,
     SECRET_POWER_ACC_MINUS_1,
+
+    //custom effect (new)
+    // Non Volatile status
+    MOVE_EFFECT_SLEEP_COUNTER,
+    MOVE_EFFECT_POISON_COUNTER,
+    MOVE_EFFECT_BURN_COUNTER,
+    MOVE_EFFECT_PARALYSIS_COUNTER,
+    MOVE_EFFECT_TOXIC_COUNTER,
+    MOVE_EFFECT_FREEZE_OR_FROSTBITE_COUNTER,
+
+    //Volatile Status
+    MOVE_EFFECT_CONFUSION_COUNTER,
+    MOVE_EFFECT_DIZZY_COUNTER,
+    MOVE_EFFECT_FLINCH_COUNTER,
+
+    //Stat changes
+    MOVE_EFFECT_STAT_MINUS_COUNTER,
+    MOVE_EFFECT_STAT_PLUS_COUNTER,
+
+    MOVE_EFFECT_OMNIBOOST_COUNTER,
+    
+    /*
+    //Stat Minus 2
+    MOVE_EFFECT_ATK_MINUS_1_COUNTER,
+    MOVE_EFFECT_DEF_MINUS_1_COUNTER,
+    MOVE_EFFECT_SPD_MINUS_1_COUNTER,
+    MOVE_EFFECT_SP_ATK_MINUS_1_COUNTER,*/
+    MOVE_EFFECT_SP_DEF_MINUS_2_COUNTER,
+    /*MOVE_EFFECT_ACC_MINUS_2_COUNTER,
+    MOVE_EFFECT_EVS_MINUS_2_COUNTER,*/
 
     NUM_MOVE_EFFECTS
 };

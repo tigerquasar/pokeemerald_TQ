@@ -3848,14 +3848,21 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
              && gBattleMons[gBattlerAttacker].volatiles.disabledMove == MOVE_NONE
              && IsBattlerAlive(gBattlerAttacker)
              && !IsAbilityOnSide(gBattlerAttacker, ABILITY_AROMA_VEIL)
-             && gChosenMove != MOVE_STRUGGLE
-             && RandomPercentage(RNG_CURSED_BODY, 30))
+             && gChosenMove != MOVE_STRUGGLE)
             {
-                gBattleMons[gBattlerAttacker].volatiles.disabledMove = gChosenMove;
-                gBattleMons[gBattlerAttacker].volatiles.disableTimer = B_DISABLE_TIMER;
-                PREPARE_MOVE_BUFFER(gBattleTextBuff1, gChosenMove);
-                BattleScriptCall(BattleScript_CursedBodyActivates);
-                effect++;
+                if(gBattleMons[gBattlerAttacker].nexeffectss.disableCounter + 20 >= 60)
+                {
+                    gBattleMons[gBattlerAttacker].nexeffectss.disableCounter = 0;
+                    gDisableStructs[gBattlerAttacker].disabledMove = gChosenMove;
+                    gDisableStructs[gBattlerAttacker].disableTimer = 4;
+                    PREPARE_MOVE_BUFFER(gBattleTextBuff1, gChosenMove);
+                    BattleScriptCall(BattleScript_CursedBodyActivates);
+                    effect++;
+                }
+                else
+                {
+                    gBattleMons[gBattlerAttacker].nexeffectss.disableCounter += 20;
+                }
             }
             break;
         case ABILITY_LINGERING_AROMA:
@@ -4047,16 +4054,76 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 }
                 sleep = 30;
 
-                i = RandomUniform(RNG_EFFECT_SPORE, 0, GetConfig(B_ABILITY_TRIGGER_CHANCE) >= GEN_4 ? 99 : 299);
+                i = RandomUniform(RNG_EFFECT_SPORE, 0, GetConfig(B_ABILITY_TRIGGER_CHANCE) >= GEN_4 ? 29 : 299);
                 if (i < poison)
-                    goto POISON_POINT;
-                if (i < paralysis)
-                    goto STATIC;
+                    {
+                    if (IsBattlerAlive(gBattlerAttacker)
+                    && !gProtectStructs[gBattlerAttacker].confusionSelfDmg
+                    && IsBattlerTurnDamaged(gBattlerTarget)
+                    && CanBePoisoned(gBattlerTarget, gBattlerAttacker, gLastUsedAbility, abilityAtk)
+                    && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, abilityAtk, GetBattlerHoldEffect(gBattlerAttacker), move))
+                    {
+                        gEffectBattler = gBattlerAttacker;
+                        if(gBattleMons[gEffectBattler].neweffect.poisonCounter + 30 >= 60)
+                        {
+                            gBattleMons[gEffectBattler].neweffect.poisonCounter = 0;
+                            gBattleScripting.battler = gBattlerTarget;
+                            gBattleScripting.moveEffect = MOVE_EFFECT_POISON;
+                            PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
+                            BattleScriptCall(BattleScript_AbilityStatusEffect);
+                            effect++;
+                        }
+                        else
+                        {
+                            gBattleMons[gEffectBattler].neweffect.poisonCounter += 30;
+                        }
+                    
+                    }
+                }
+                else if (i < paralysis)
+                {
+                    if (IsBattlerAlive(gBattlerAttacker)
+                    && !gProtectStructs[gBattlerAttacker].confusionSelfDmg
+                    && IsBattlerTurnDamaged(gBattlerTarget)
+                    && CanBeParalyzed(gBattlerTarget, gBattlerAttacker, abilityAtk)
+                    && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, abilityAtk, GetBattlerHoldEffect(gBattlerAttacker), move))
+                    {
+                        gEffectBattler = gBattlerAttacker;
+                        if(gBattleMons[gEffectBattler].neweffect.paralysisCounter + 30 >= 60)
+                        {
+                            gBattleMons[gEffectBattler].neweffect.paralysisCounter = 0;
+                            gBattleScripting.battler = gBattlerTarget;
+                            gBattleScripting.moveEffect = MOVE_EFFECT_PARALYSIS;
+                            PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
+                            BattleScriptCall(BattleScript_AbilityStatusEffect);
+                            effect++;
+                        }
+                        else
+                        {
+                                gBattleMons[gEffectBattler].neweffect.paralysisCounter += 30;
+                        }
+                    }
+                }
                 // Sleep
-                if (i < sleep && CanBeSlept(gBattlerTarget, gBattlerAttacker, abilityAtk, NOT_BLOCKED_BY_SLEEP_CLAUSE))
+                else if (i < sleep && CanBeSlept(gBattlerTarget, gBattlerAttacker, abilityAtk, NOT_BLOCKED_BY_SLEEP_CLAUSE))
                 {
                     if (IsSleepClauseEnabled())
-                        gBattleStruct->battlerState[gBattlerAttacker].sleepClauseEffectExempt = TRUE;
+                    {
+                        gEffectBattler = gBattlerAttacker;
+                        gBattleScripting.battler = gBattlerTarget;
+                        if(gBattleMons[gEffectBattler].neweffect.sleepCounter + 30 >= 60)
+                        {
+                            gBattleMons[gEffectBattler].neweffect.sleepCounter = 0;
+                            gBattleScripting.moveEffect = MOVE_EFFECT_SLEEP;
+                            PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
+                            BattleScriptCall(BattleScript_AbilityStatusEffect);
+                            effect++;
+                        }
+                        else
+                        {
+                            gBattleMons[gEffectBattler].neweffect.poisonCounter += 30;
+                        }
+                    }
                     gEffectBattler = gBattlerAttacker;
                     gBattleScripting.battler = gBattlerTarget;
                     gBattleScripting.moveEffect = MOVE_EFFECT_SLEEP;
@@ -4068,8 +4135,6 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
         }
             break;
         case ABILITY_POISON_POINT:
-            if (GetConfig(B_ABILITY_TRIGGER_CHANCE) >= GEN_4 ? RandomPercentage(RNG_POISON_POINT, 30) : RandomChance(RNG_POISON_POINT, 1, 3))
-            {
             POISON_POINT:
             {
                 enum Ability abilityAtk = GetBattlerAbility(gBattlerAttacker);
@@ -4079,19 +4144,23 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 && CanBePoisoned(gBattlerTarget, gBattlerAttacker, gLastUsedAbility, abilityAtk)
                 && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, abilityAtk, GetBattlerHoldEffect(gBattlerAttacker), move))
                 {
-                    gEffectBattler = gBattlerAttacker;
-                    gBattleScripting.battler = gBattlerTarget;
-                    gBattleScripting.moveEffect = MOVE_EFFECT_POISON;
-                    PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
-                    BattleScriptCall(BattleScript_AbilityStatusEffect);
-                    effect++;
+                    if(gBattleMons[gEffectBattler].nexeffectss.poisonCounter + 20 >= 60)
+                    {
+                        gBattleMons[gEffectBattler].nexeffectss.poisonCounter = 0;
+                        gBattleScripting.battler = gBattlerTarget;
+                        gBattleScripting.moveEffect = MOVE_EFFECT_POISON;
+                        PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
+                        BattleScriptCall(BattleScript_AbilityStatusEffect);
+                        effect++;
+                    }
+                    else
+                    {
+                        gBattleMons[gEffectBattler].nexeffectss.poisonCounter += 20;
+                    }
                 }
-            }
             }
             break;
         case ABILITY_STATIC:
-            if (GetConfig(B_ABILITY_TRIGGER_CHANCE) >= GEN_4 ? RandomPercentage(RNG_STATIC, 30) : RandomChance(RNG_STATIC, 1, 3))
-            {
             STATIC:
             {
                 enum Ability abilityAtk = GetBattlerAbility(gBattlerAttacker);
@@ -4101,12 +4170,19 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 && CanBeParalyzed(gBattlerTarget, gBattlerAttacker, abilityAtk)
                 && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, abilityAtk, GetBattlerHoldEffect(gBattlerAttacker), move))
                 {
-                    gEffectBattler = gBattlerAttacker;
-                    gBattleScripting.battler = gBattlerTarget;
-                    gBattleScripting.moveEffect = MOVE_EFFECT_PARALYSIS;
-                    PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
-                    BattleScriptCall(BattleScript_AbilityStatusEffect);
-                    effect++;
+                    if(gBattleMons[gEffectBattler].nexeffects.paralysisCounter + 20 >= 60)
+                    {
+                        gBattleMons[gEffectBattler].nexeffects.paralysisCounter = 0;
+                        gBattleScripting.battler = gBattlerTarget;
+                        gBattleScripting.moveEffect = MOVE_EFFECT_PARALYSIS;
+                        PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
+                        BattleScriptCall(BattleScript_AbilityStatusEffect);
+                        effect++;
+                    }
+                    else
+                    {
+                        gBattleMons[gEffectBattler].nexeffects.paralysisCounter += 20;
+                    }
                 }
             }
             }
@@ -4116,15 +4192,21 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
              && !gBattleStruct->unableToUseMove
              && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerAttacker), GetBattlerHoldEffect(gBattlerAttacker), move)
              && IsBattlerTurnDamaged(gBattlerTarget, EXCLUDING_SUBSTITUTES)
-             && CanBeBurned(gBattlerTarget, gBattlerAttacker, GetBattlerAbility(gBattlerAttacker))
-             && (GetConfig(B_ABILITY_TRIGGER_CHANCE) >= GEN_4 ? RandomPercentage(RNG_FLAME_BODY, 30) : RandomChance(RNG_FLAME_BODY, 1, 3)))
+             && CanBeBurned(gBattlerTarget, gBattlerAttacker, GetBattlerAbility(gBattlerAttacker)))
             {
-                gEffectBattler = gBattlerAttacker;
-                gBattleScripting.battler = gBattlerTarget;
-                gBattleScripting.moveEffect = MOVE_EFFECT_BURN;
-                PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
-                BattleScriptCall(BattleScript_AbilityStatusEffect);
-                effect++;
+                if(gBattleMons[gEffectBattler].nexeffects.burnCounter + 20 >= 60)
+                {
+                    gBattleMons[gEffectBattler].nexeffects.burnCounter = 0;
+                    gBattleScripting.battler = gBattlerTarget;
+                    gBattleScripting.moveEffect = MOVE_EFFECT_BURN;
+                    PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
+                    BattleScriptCall(BattleScript_AbilityStatusEffect);
+                    effect++;
+                }
+                else
+                {
+                    gBattleMons[gEffectBattler].nexeffects.burnCounter += 20;
+                }
             }
             break;
         case ABILITY_CUTE_CHARM:
@@ -4132,16 +4214,23 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
              && !gBattleStruct->unableToUseMove
              && IsBattlerTurnDamaged(gBattlerTarget, EXCLUDING_SUBSTITUTES)
              && IsBattlerAlive(gBattlerTarget)
-             && (GetConfig(B_ABILITY_TRIGGER_CHANCE) >= GEN_4 ? RandomPercentage(RNG_CUTE_CHARM, 30) : RandomChance(RNG_CUTE_CHARM, 1, 3))
              && !(gBattleMons[gBattlerAttacker].volatiles.infatuation)
              && AreBattlersOfOppositeGender(gBattlerAttacker, gBattlerTarget)
              && !IsAbilityAndRecord(gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), ABILITY_OBLIVIOUS)
              && !CanBattlerAvoidContactEffects(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerAttacker), GetBattlerHoldEffect(gBattlerAttacker), move)
              && !IsAbilityOnSide(gBattlerAttacker, ABILITY_AROMA_VEIL))
             {
-                gBattleMons[gBattlerAttacker].volatiles.infatuation = INFATUATED_WITH(gBattlerTarget);
-                BattleScriptCall(BattleScript_CuteCharmActivates);
-                effect++;
+                if(gBattleMons[gBattlerAttacker].nexeffects.infatuationCounter + 20 >= 60)
+                {
+                    gBattleMons[gBattlerAttacker].nexeffects.infatuationCounter = 0;
+                    gBattleMons[gBattlerAttacker].volatiles.infatuation = INFATUATED_WITH(gBattlerTarget);
+                    BattleScriptCall(BattleScript_CuteCharmActivates);
+                    effect++;
+                }
+                else
+                {
+                    gBattleMons[gBattlerAttacker].nexeffects.infatuationCounter += 20;
+                }
             }
             break;
         case ABILITY_ILLUSION:
@@ -4294,14 +4383,21 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
              && CanBePoisoned(gBattlerAttacker, gBattlerTarget, gLastUsedAbility, GetBattlerAbility(gBattlerTarget))
              && IsMoveMakingContact(gBattlerAttacker, gBattlerTarget, GetBattlerAbility(gBattlerAttacker), GetBattlerHoldEffect(gBattlerAttacker), move)
              && IsBattlerTurnDamaged(gBattlerTarget, EXCLUDING_SUBSTITUTES) // Need to actually hit the target
-             && RandomPercentage(RNG_POISON_TOUCH, 30))
+             && IsBattlerTurnDamaged(gBattlerTarget) )// Need to actually hit the target
             {
-                gEffectBattler = gBattlerTarget;
-                gBattleScripting.battler = gBattlerAttacker;
-                gBattleScripting.moveEffect = MOVE_EFFECT_POISON;
-                PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
-                BattleScriptCall(BattleScript_AbilityStatusEffect);
-                effect++;
+                if(gBattleMons[gEffectBattler].nexeffects.poisonCounter + 20 >= 60)
+                {
+                    gBattleMons[gEffectBattler].nexeffects.poisonCounter = 0;
+                    gBattleScripting.battler = gBattlerAttacker;
+                    gBattleScripting.moveEffect = MOVE_EFFECT_POISON;
+                    PREPARE_ABILITY_BUFFER(gBattleTextBuff1, gLastUsedAbility);
+                    BattleScriptCall(BattleScript_AbilityStatusEffect);
+                    effect++;
+                }
+                else 
+                {
+                    gBattleMons[gEffectBattler].nexeffects.poisonCounter += 20;
+                }
             }
             break;
         case ABILITY_TOXIC_CHAIN:
@@ -4322,12 +4418,19 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
         case ABILITY_STENCH:
             if (IsBattlerAlive(gBattlerTarget)
              && !gBattleStruct->unableToUseMove
-             && RandomChance(RNG_STENCH, 1, 10)
              && IsBattlerTurnDamaged(gBattlerTarget, EXCLUDING_SUBSTITUTES)
              && !MoveHasAdditionalEffect(gCurrentMove, MOVE_EFFECT_FLINCH))
             {
-                SetMoveEffect(gBattlerAttacker, gBattlerTarget, MOVE_EFFECT_FLINCH, gBattlescriptCurrInstr, NO_FLAGS);
-                effect++;
+                if(gBattleMons[gBattlerTarget].nexeffects.flinchCounter + 20 >= 60)
+                {
+                    gBattleMons[gBattlerTarget].nexeffects.flinchCounter = 0;
+                    SetMoveEffect(gBattlerAttacker, gBattlerTarget, MOVE_EFFECT_FLINCH, gBattlescriptCurrInstr, EFFECT_PRIMARY);
+                    effect++;
+                }
+                else
+                {
+                    gBattleMons[gBattlerTarget].nexeffects.flinchCounter += 20;
+                }
             }
             break;
         case ABILITY_POISON_PUPPETEER:
@@ -7602,7 +7705,7 @@ static inline s32 DoMoveDamageCalcVars(struct DamageContext *ctx)
     DAMAGE_APPLY_MODIFIER(GetWeatherDamageModifier(ctx));
     DAMAGE_APPLY_MODIFIER(GetCriticalModifier(ctx->isCrit));
     DAMAGE_APPLY_MODIFIER(GetGlaiveRushModifier(ctx->battlerDef));
-    buff = accStage + DEFAULT_STAT_STAGE - evasionStage + 2*gBattleMons[ctx->battlerDef].neweffect.beamEffect ;
+    buff = accStage + DEFAULT_STAT_STAGE - evasionStage + 2*gBattleMons[ctx->battlerDef].nexeffects.beamEffect ;
         if (buff > DEFAULT_STAT_STAGE)
             buff = DEFAULT_STAT_STAGE;
         if (buff < MIN_STAT_STAGE)

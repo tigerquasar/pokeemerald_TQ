@@ -335,6 +335,76 @@ struct Volatiles
     // etc.
 };
 
+struct NewEffects
+{
+    // Non volatile status
+    u32 sleepCounter:6;
+    u32 poisonCounter:6;
+    u32 burnCounter:6;
+    u32 paralysisCounter:6;
+    u32 toxicCounter:6;
+    u32 frostbiteCounter:6;
+
+    //Volatile status
+    u32 confusionCounter:6;
+    u32 flinchCounter:6;
+    u32 infatuationCounter:6;
+    u32 disableCounter:6;
+
+    u32 dizzyCounter:6;
+
+    //Stat minus 1
+    u32 atkMinus1Counter:6;
+    u32 defMinus1Counter:6;
+    u32 speatkMinus1Counter:6;
+    u32 spedefMinus1Counter:6;
+    u32 spdMinus1Counter:6;
+    u32 accMinus1Counter:6;
+    u32 evaMinus1Counter:6;
+
+    /*
+    //Stat minus 2
+    u32 atkMinus2Counter:6;
+    u32 defMinus2Counter:6;
+    u32 speatkMinus2Counter:6;*/
+    u32 spedefMinus2Counter:6;
+    /*u32 spdMinus2Counter:6;
+    u32 accMinus2Counter:6;
+    u32 evaMinus2Counter:6;*/
+
+    // Stat self plus 1
+    u32 atkPlus1Counter:6;
+    u32 defPlus1Counter:6;
+    u32 speatkPlus1Counter:6;
+    u32 spedefPlus1Counter:6;
+    u32 spdPlus1Counter:6;
+    /*u32 accPlus1Counter:6;
+    u32 evaPlus1Counter:6;*/
+    u32 omniboostCounter:6;
+
+    //u32 atkPlus2Counter:6;
+    u32 defPlus2Counter:6;
+    /*u32 speatkPlus2Counter:6;
+    u32 spedefPlus2Counter:6;
+    u32 spdPlus2Counter:6;
+    u32 accPlus2Counter:6;
+    u32 evaPlus2Counter:6;*/
+
+    u32 tormentCounter:6;
+    u32 embargoCounter:6;
+    u32 ballisticCounter:6;
+    //u32 punchingCounter:6;
+
+    u32 beamEffect:1;
+    u32 ballisticEffectTimer:2;
+    
+    u32 bittenEffect:4;
+
+    u32 grappledEffect:4;
+    u32 illuminateEffect:2;
+
+};
+
 struct BattlePokemon
 {
     enum Species species;
@@ -367,6 +437,7 @@ struct BattlePokemon
     u32 personality;
     u32 status1;
     struct Volatiles volatiles;
+    struct NewEffects neweffects;
     u32 otId;
     u8 metLevel:7;
     u8 isShiny:1;
